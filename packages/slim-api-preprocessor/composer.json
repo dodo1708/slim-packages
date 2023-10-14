@@ -1,0 +1,11 @@
+{
+  "name": "aus/slim-api-preprocessor",
+  "autoload": {
+    "psr-4": {
+      "SlimAP\\": "src/"
+    }
+  },
+  "require": {
+    "php": "^8.1"
+  }
+}

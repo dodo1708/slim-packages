@@ -1,0 +1,47 @@
+version: "3.7"
+
+services:
+  web:
+    image: pluswerk/php-dev:nginx-8.2
+    hostname: slim-php
+    working_dir: /app/slim
+    volumes:
+      - .:/app
+      - ~/.ssh:/home/application/.ssh
+      - ~/.composer/cache:/home/application/.composer/cache
+      - ~/.gitconfig:/home/application/.gitconfig
+
+    environment:
+      - VIRTUAL_HOST=${DOMAIN}
+      - CONTEXT=${CONTEXT}
+      - WEB_DOCUMENT_ROOT=/app/slim/public
+      - XDEBUG_CLIENT_HOST=${XDEBUG_CLIENT_HOST:-}
+      - XDEBUG_CLIENT_PORT=${XDEBUG_CLIENT_PORT:-9000}
+      - php.xdebug.discover_client_host=Off
+      - php.xdebug.idekey=${XDEBUG_IDEKEY:-PHPSTORM}
+      - APPLICATION_UID=${APPLICATION_UID:-1000}
+      - APPLICATION_GID=${APPLICATION_GID:-1000}
+    networks:
+      - aus-internal
+      - default
+    env_file:
+      - .env
+
+  redis:
+    image: redis:7.2
+    ports:
+      - 6381:6379
+    expose:
+      - "6381"
+    hostname: slim-redis
+    volumes:
+      - .docker/redis:/data
+    networks:
+      - aus-internal
+
+networks:
+  default:
+    external:
+      name: global
+  aus-internal:
+    name: aus-internal

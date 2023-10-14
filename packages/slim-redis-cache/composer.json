@@ -1,0 +1,12 @@
+{
+  "name": "aus/slim-redis-cache",
+  "autoload": {
+    "psr-4": {
+      "SlimRC\\": "src/"
+    }
+  },
+  "require": {
+    "php": "^8.1",
+    "symfony/cache": "^6.3"
+  }
+}

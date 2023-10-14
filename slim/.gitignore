@@ -1,0 +1,12 @@
+.idea/
+.vscode/
+/coverage/
+/vendor/
+/logs/*
+!/logs/README.md
+.phpunit.result.cache
+public/*
+!public/index.php
+!public/.htaccess
+var/results/*
+!var/results/.gitkeep
