@@ -9,7 +9,9 @@ use Slim\Factory\AppFactory;
 use Slim\Psr7\Factory\StreamFactory;
 use Slim\Routing\RouteContext;
 use SlimRC\Attribute\CacheResponse;
-use Symfony\Component\Cache\Adapter\RedisAdapter;
+use SlimRC\Control\CacheControl;
+use SlimRC\Service\RedisConnectionService;
+use Symfony\Component\Cache\Adapter\RedisTagAwareAdapter;
 use Symfony\Contracts\Cache\ItemInterface;
 
 class RouteCacheHandler
@@ -20,20 +22,19 @@ class RouteCacheHandler
     /** @var CacheResponse[] */
     private array $attributes = [];
     private ?Response $response = null;
-    private readonly RedisAdapter $cache;
+    private readonly RedisTagAwareAdapter $cache;
 
-    public function __construct()
+    public function __construct(private readonly CacheControl $cacheControl)
     {
-        $redis = new \Redis();
-        $redis->connect(getenv('REDIS_HOST'), getenv('REDIS_PORT') ?: 6379);
-        $this->cache = new RedisAdapter($redis);
+        $redis = RedisConnectionService::getInstance()->getConnection();
+        $this->cache = new RedisTagAwareAdapter($redis);
     }
 
     public function handle(Request $request, RequestHandler $requestHandler): Response
     {
         $this->init($request, $requestHandler);
         $this->loadCallable();
-        $this->loadAttributes();
+        $this->attributes = $this->cacheControl->loadAttributes($this->callable);
         if (empty($this->attributes)) {
             return $this->requestHandler->handle($request);
         }
@@ -58,72 +59,32 @@ class RouteCacheHandler
         $this->callable = $route->getCallable();
     }
 
-    private function loadAttributes(): void
-    {
-        if (count($parts = explode(':', $this->callable)) === 2) {
-            $class = $parts[0];
-            if (class_exists($class)) {
-                $reflection = new \ReflectionClass($class);
-                $method = $reflection->getMethod($parts[1]);
-                $attributes = $method->getAttributes(CacheResponse::class);
-                $this->attributes = array_map(static fn($a) => $a->newInstance(), $attributes);
-            }
-        }
-    }
-
     private function checkCache(): void
     {
         if (empty($this->attributes)) {
             return;
         }
-        $cacheKey = $this->getCacheKey();
+        $cacheKey = $this->cacheControl->getCacheKey($this->attributes[0]);
         $responseContent = $this->cache->get($cacheKey, function (ItemInterface $item): string {
-            $item->expiresAfter($this->getExpiration());
-            return $this->getResponseContent();
+            $item->expiresAfter($this->cacheControl->getExpiration($this->attributes[0]));
+            $item->tag($this->cacheControl->getTags($this->attributes[0]));
+            $content = $this->getResponseContent();
+            if ($content === null) {
+                $item->expiresAfter(0);
+                $content = '';
+            }
+            return $content;
         });
         $this->response = $this->getResponseFromContent($responseContent);
     }
 
-    private function getCacheKey(): string
-    {
-        $attr = $this->attributes[0] ?? null;
-        return $attr && $attr->key ? $attr->key : $this->getRequestCacheHash();
-    }
-
-    private function getExpiration(): ?int
-    {
-        $attr = $this->attributes[0] ?? null;
-        return $attr && $attr->expiration ? $attr->expiration : null;
-    }
-
-    private function getContentType(): string
-    {
-        $attr = $this->attributes[0] ?? null;
-        return $attr && $attr->contentType ? $attr->contentType : 'application/json';
-    }
-
-    private function pathOnly(): string
-    {
-        $attr = $this->attributes[0] ?? null;
-        return $attr->pathOnly ?? false;
-    }
-
-    private function getRequestCacheHash(): string
-    {
-        $uri = $this->request->getUri();
-
-        $keyComponents = $uri->getPath();
-        if (!$this->pathOnly()) {
-            $keyComponents .= $uri->getQuery();
-        }
-
-        return md5($keyComponents);
-    }
-
-    private function getResponseContent(): string
+    private function getResponseContent(): ?string
     {
         $response = $this->requestHandler->handle($this->request);
-        return $response->getBody()->getContents();
+        if ($response->getStatusCode() >= 200 && $response->getStatusCode() <= 299) {
+            return $response->getBody()->getContents();
+        }
+        return null;
     }
 
     private function getResponseFromContent(string $content): Response
@@ -134,7 +95,7 @@ class RouteCacheHandler
         return $response
             ->withBody($stream)
             ->withStatus(200)
-            ->withHeader('Content-Type', $this->getContentType())
+            ->withHeader('Content-Type', $this->cacheControl->getContentType($this->attributes[0]))
             ->withHeader('Content-Length', strlen($content));
     }
 }

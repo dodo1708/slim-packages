@@ -13,6 +13,16 @@ return function (App $app) {
     });
 
     $app->get(
+        '/clear-test1',
+        \App\Application\Controller\DefaultController::class . ':clear'
+    );
+
+    $app->get(
+        '/other',
+        \App\Application\Controller\DefaultController::class . ':other'
+    );
+
+    $app->get(
         '/[{path:.*}]',
         \App\Application\Controller\DefaultController::class . ':default'
     );

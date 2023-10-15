@@ -64,6 +64,10 @@ $app->addRoutingMiddleware();
 // Add Body Parsing Middleware
 $app->addBodyParsingMiddleware();
 
+$slimRcConfig = \SlimRC\Configuration\Configuration::getInstance();
+$slimRcConfig->setCacheRootSegment('test');
+$slimRcConfig->setPathToSegments(true);
+
 // Add Error Middleware
 //$errorMiddleware = $app->addErrorMiddleware($displayErrorDetails, $logError, $logErrorDetails);
 //$errorMiddleware->setDefaultErrorHandler($errorHandler);
