@@ -3,6 +3,7 @@
 namespace SlimRC\Control;
 
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Routing\RouteContext;
 use SlimRC\Attribute\CacheResponse;
 use SlimRC\Configuration\Configuration;
 use SlimRC\Service\RedisConnectionService;
@@ -80,7 +81,31 @@ class CacheControl
         if ($attr && !empty($attr->tags)) {
             $tags = array_merge($tags, $attr->tags);
         }
+        if (Configuration::getInstance()->isEnableTemplateTags()) {
+            return $this->interpolateTags($tags);
+        }
         return $tags;
+    }
+
+    public function interpolateTags(array $tags): array
+    {
+        $interpolatedTags = [];
+        $routeParams = $this->getRouteParams();
+        foreach ($tags as $tag) {
+            $iTag = $tag;
+            foreach ($routeParams as $name => $value) {
+                $iTag = str_replace(sprintf('{%s}', $name), $value, $tag);
+            }
+            $interpolatedTags[] = $iTag;
+        }
+        return $interpolatedTags;
+    }
+
+    private function getRouteParams(): array
+    {
+        $routeContext = RouteContext::fromRequest($this->getRequest());
+        $route = $routeContext->getRoute();
+        return $route ? $route->getArguments() : [];
     }
 
     public function pathOnly(?CacheResponse $attr = null): string

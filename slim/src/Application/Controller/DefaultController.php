@@ -32,7 +32,7 @@ class DefaultController
         return $response;
     }
 
-    #[CacheResponse(null, null, ['other'])]
+    #[CacheResponse(null, null, ['other', 'other-{param}'])]
     public function other(RequestInterface $request, Response $response, array $args): Response
     {
         $response->getBody()->write('Other');

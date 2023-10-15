@@ -13,7 +13,10 @@ final class Configuration
      * /foo/bar -> foo#bar
      */
     private bool $pathToSegments = false;
-
+    /**
+     * Allows interpolating tags with route params: some-tag-{id} + /some/route/{id:[0-9]+} -> /some/route/123 -> some-tag-123
+     */
+    private bool $enableTemplateTags = true;
     /**
      * Prefix all cache entries with the given prefix.
      * foo -> foo#35a63c8a85b1279a0f991ce8828fb9d9
@@ -83,5 +86,15 @@ final class Configuration
     public function setRequest(Request $request): void
     {
         $this->request = $request;
+    }
+
+    public function isEnableTemplateTags(): bool
+    {
+        return $this->enableTemplateTags;
+    }
+
+    public function setEnableTemplateTags(bool $enableTemplateTags): void
+    {
+        $this->enableTemplateTags = $enableTemplateTags;
     }
 }

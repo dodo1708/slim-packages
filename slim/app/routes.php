@@ -18,7 +18,7 @@ return function (App $app) {
     );
 
     $app->get(
-        '/other',
+        '/other/{param}',
         \App\Application\Controller\DefaultController::class . ':other'
     );
 
