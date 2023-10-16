@@ -22,8 +22,10 @@ final class Configuration
      * foo -> foo#35a63c8a85b1279a0f991ce8828fb9d9
      */
     private string $cacheRootSegment = '';
-    private ?int $defaultExpiration = null;
+    private ?int $defaultExpiration = 60 * 60 * 24;
     private string $keySegmentSeparator = '#';
+    private string $redisHost = 'redis';
+    private int $redisPort = 6379;
     private Request $request;
 
     private function __construct()
@@ -32,10 +34,10 @@ final class Configuration
 
     public static function getInstance(): Configuration
     {
-        if (!static::$instance) {
-            static::$instance = new static();
+        if (!Configuration::$instance) {
+            Configuration::$instance = new static();
         }
-        return static::$instance;
+        return Configuration::$instance;
     }
 
     public function isPathToSegments(): bool
@@ -96,5 +98,25 @@ final class Configuration
     public function setEnableTemplateTags(bool $enableTemplateTags): void
     {
         $this->enableTemplateTags = $enableTemplateTags;
+    }
+
+    public function getRedisHost(): string
+    {
+        return $this->redisHost ?: getenv('REDIS_HOST') ?: '';
+    }
+
+    public function setRedisHost(string $redisHost): void
+    {
+        $this->redisHost = $redisHost;
+    }
+
+    public function getRedisPort(): int
+    {
+        return $this->redisPort ?: (int)(getenv('REDIS_PORT') ?: '6379');
+    }
+
+    public function setRedisPort(int $redisPort): void
+    {
+        $this->redisPort = $redisPort;
     }
 }

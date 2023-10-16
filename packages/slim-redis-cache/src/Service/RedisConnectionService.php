@@ -6,6 +6,7 @@ namespace SlimRC\Service;
 
 use Redis;
 use RedisException;
+use SlimRC\Configuration\Configuration;
 
 class RedisConnectionService
 {
@@ -19,8 +20,8 @@ class RedisConnectionService
      */
     private function __construct()
     {
-        $redisHost = getenv('REDIS_HOST');
-        $redisPort = getenv('REDIS_PORT');
+        $redisHost = Configuration::getInstance()->getRedisHost();
+        $redisPort = Configuration::getInstance()->getRedisPort();
         if (!$redisHost || !$redisPort) {
             throw new RedisException('Missing Redis credentials.', 1599731163);
         }
